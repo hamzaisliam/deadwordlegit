@@ -1,0 +1,431 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>THE DEAD WORD</title>
+<style>
+:root {
+  --bg-light: #fdfdfd;
+  --text-light: #222;
+  --box-light: #f7f7f7;
+  --button-light: #4a90e2;
+  --button-text-light: #fff;
+
+  --bg-dark: #0d0d0d;
+  --text-dark: #f7f7f7;
+  --box-dark: #1a1a1a;
+  --button-dark: #e67e22;
+  --button-text-dark: #fff;
+
+  --score-color: #007bff;
+  --timer-color: #dc3545;
+  --win-color: #28a745;
+  --lose-color: #dc3545;
+}
+
+body {
+  background: var(--bg-light);
+  color: var(--text-light);
+  font-family: 'Arial', sans-serif;
+  direction: ltr;
+  max-width: 900px;
+  margin: 30px auto;
+  text-align: center;
+  transition: background 0.5s, color 0.5s;
+}
+body.dark {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+h1 { margin-bottom: 25px; font-size: 3.5em; text-shadow: 2px 2px 4px #0003; }
+
+.container-box {
+  background: var(--box-light);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px #0003;
+  font-size: 1.5em;
+  display: none;
+  margin-top: 25px;
+  border: 1px solid #ccc;
+  transition: background 0.3s, color 0.3s;
+}
+body.dark .container-box { background: var(--box-dark); }
+
+textarea, input { font-size: 1.3em; padding: 12px; border-radius: 12px; border: 2px solid #ccc; margin-top: 10px; }
+textarea { width: 80%; min-height: 80px; }
+input { width: 200px; text-align: center; }
+
+button {
+  font-size: 1.3em;
+  padding: 12px 25px;
+  margin: 10px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.3s;
+  background: var(--button-light);
+  color: var(--button-text-light);
+}
+body.dark button { background: var(--button-dark); color: var(--button-text-dark); }
+button:hover { opacity: 0.9; transform: scale(1.05); }
+button:active { transform: translateY(3px); }
+
+#word { font-size: 4.5em; letter-spacing: 0.5em; margin: 25px 0 40px; font-weight: bold; }
+#message { color: var(--win-color); margin-top: 20px; font-weight: bold; }
+#error-message { color: var(--lose-color); margin-top: 10px; font-weight: bold; }
+
+#game-stats { display: flex; justify-content: space-around; align-items: center; margin-bottom: 25px; padding: 10px 0; border-bottom: 2px solid #ccc; font-size: 1.1em; }
+.stat-item { display: flex; align-items: center; gap: 8px; }
+#score-display { color: var(--score-color); }
+#timer-display { color: var(--timer-color); }
+#attempts { color: var(--lose-color); }
+
+#leaderboard-list { list-style: none; padding: 0; margin-top: 20px; }
+#leaderboard-list li { display: flex; justify-content: space-between; padding: 12px; border-radius: 8px; background: var(--box-light); margin-bottom: 5px; transition: 0.3s; }
+body.dark #leaderboard-list li { background: var(--box-dark); }
+#leaderboard-list li:first-child { background: var(--score-color); color: #fff; font-weight: bold; }
+
+#settings-btn { position: absolute; top: 20px; right: 20px; padding: 12px 20px; font-size: 1.1em; border-radius: 12px; }
+</style>
+</head>
+<body>
+
+<h1 id="title">THE DEAD WORD</h1>
+<button id="settings-btn">⚙️ Settings</button>
+
+<!-- Settings -->
+<div id="settings-box" class="container-box">
+  <h2>⚙️ Settings</h2>
+  <div class="settings-option">
+    <h3>Mode</h3>
+    <button onclick="setMode('light')">Light</button>
+    <button onclick="setMode('dark')">Dark</button>
+  </div>
+  <div class="settings-option">
+    <h3>Language</h3>
+    <button onclick="setLang('en')">English</button>
+    <button onclick="setLang('ar')">العربية</button>
+  </div>
+</div>
+
+<!-- Player Setup -->
+<div id="player-setup" class="container-box">
+  <h2 id="player-setup-title">👤 Enter your name</h2>
+  <input type="text" id="player-name" placeholder="Name" maxlength="15" />
+  <br>
+  <button id="start-menu-btn">▶️ Start</button>
+</div>
+
+<!-- Main Menu -->
+<div id="menu" class="container-box">
+  <h2 id="menu-title">Main Menu</h2>
+  <label id="custom-words-label">Enter your words (comma separated):</label><br>
+  <textarea id="custom-words"></textarea><br>
+  <button id="use-custom">Use My Words</button>
+  <button id="use-random">Random Words</button>
+  <br><button id="show-leaderboard-btn">Leaderboard</button>
+</div>
+
+<!-- Game Area -->
+<div id="game-area" class="container-box">
+  <div id="game-stats">
+    <div class="stat-item">👤 <span id="player-name-display"></span></div>
+    <div class="stat-item"><span id="score-label">Score:</span> <span id="score-display">0</span></div>
+    <div class="stat-item"><span id="time-label">Time Left:</span> <span id="timer-display">60</span>s</div>
+  </div>
+  <div id="word">_ _ _ _</div>
+  <label id="letter-label">Choose a letter:</label><br>
+  <input type="text" id="letter-input" maxlength="1" /><br>
+  <button id="guess-btn">🔍 Guess</button>
+  <button id="main-menu-btn">Main Menu</button>
+  <div id="message"></div>
+  <div id="error-message"></div>
+  <div id="tries-text">❤️ <span id="attempts-label">Attempts Left:</span> <span id="attempts">6</span></div>
+</div>
+
+<!-- Leaderboard -->
+<div id="leaderboard-box" class="container-box">
+  <h2 id="leaderboard-title">Leaderboard</h2>
+  <ul id="leaderboard-list"></ul>
+  <button id="clear-leaderboard-btn">🗑️ مسح المتصدرين</button>
+  <button id="back-to-menu-btn">Back</button>
+</div>
+
+<script>
+// Words
+let englishWords = ["cat","dog","sun","hat","car","book","fish","tree","star","ball","milk","door","pen","cup","egg","bird","rain","fire","moon","leaf"];
+let arabicWords = ["قلم","بيت","شمس","قمر","بحر","ورد","تفاح","ماء","طعام","سرير","كرة","حجر","باب","كتاب","ورقة"];
+let words = englishWords;
+
+// Game variables
+let attemptsLeft=6, chosenWord='', displayedWord=[], guessedLetters=new Set(), score=0, playerName='', timeLeft=60, timerInterval;
+let isArabic=false;
+let leaderboard = JSON.parse(localStorage.getItem('deadWordLeaderboard')) || [];
+
+// DOM elements
+const playerSetup=document.getElementById("player-setup"), menu=document.getElementById("menu"), gameArea=document.getElementById("game-area"), settingsBox=document.getElementById("settings-box"), leaderboardBox=document.getElementById("leaderboard-box");
+
+function showScreen(id){ [playerSetup, menu, gameArea, settingsBox, leaderboardBox].forEach(b=>b.style.display=b.id===id?"block":"none"); }
+
+function updateLeaderboardDisplay(){
+  const list=document.getElementById("leaderboard-list"); list.innerHTML="";
+  leaderboard.sort((a,b)=>b.score-a.score).slice(0,10).forEach((e,i)=>{
+    const li=document.createElement("li"), rank=i+1;
+    const emoji = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+    li.innerHTML=`<span>${emoji} ${rank}. ${e.name}</span> <span>${e.score} ${isArabic?'نقطة':'Pts'}</span>`;
+    list.appendChild(li);
+  });
+}
+
+// Clear leaderboard button
+document.getElementById("clear-leaderboard-btn").onclick = () => {
+  if(confirm(isArabic ? "هل تريد مسح جميع المتصدرين؟" : "Do you want to clear the leaderboard?")) {
+    leaderboard = [];
+    localStorage.removeItem('deadWordLeaderboard');
+    updateLeaderboardDisplay();
+  }
+};
+
+function saveScore(){ if(score>0 && playerName){ leaderboard.push({name:playerName,score:score}); localStorage.setItem('deadWordLeaderboard',JSON.stringify(leaderboard)); updateLeaderboardDisplay(); }}
+
+function startTimer(){ timeLeft=60; document.getElementById("timer-display").textContent=timeLeft;
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{ timeLeft--; document.getElementById("timer-display").textContent=timeLeft;
+  if(timeLeft<=0){ clearInterval(timerInterval); endGame(false,isArabic?"انتهى الوقت!":"Time's up!"); }},1000);
+}
+
+function calculateScore(){ return chosenWord.length*10 + timeLeft*5 + attemptsLeft*20; }
+function setMode(mode){ document.body.classList.toggle('dark', mode==='dark'); }
+
+function setLang(lang){
+  isArabic=lang==='ar';
+  document.body.style.direction=isArabic?'rtl':'ltr';
+
+  // Player setup
+  document.getElementById("player-setup-title").textContent = isArabic?"👤 أدخل اسمك":"👤 Enter your name";
+  document.getElementById("start-menu-btn").textContent = isArabic?"▶️ بدء":"▶️ Start";
+
+  // Main menu
+  document.getElementById("menu-title").textContent = isArabic?"القائمة الرئيسية":"Main Menu";
+  document.getElementById("custom-words-label").textContent = isArabic?"أدخل كلماتك الخاصة (افصل بينها بفواصل):":"Enter your words (comma separated):";
+  document.getElementById("use-custom").textContent = isArabic?"استخدم كلماتي":"Use My Words";
+  document.getElementById("use-random").textContent = isArabic?"كلمات جاهزة":"Random Words";
+  document.getElementById("show-leaderboard-btn").textContent = isArabic?"المتصدرين":"Leaderboard";
+
+  // Game labels
+  document.getElementById("score-label").textContent = isArabic?"النقاط:":"Score:";
+  document.getElementById("time-label").textContent = isArabic?"المتبقي:":"Time Left:";
+  document.getElementById("letter-label").textContent = isArabic?"اختر حرف:":"Choose a letter:";
+  document.getElementById("attempts-label").textContent = isArabic?"عدد المحاولات:":"Attempts Left:";
+
+  // Leaderboard
+  document.getElementById("leaderboard-title").textContent = isArabic?"قائمة المتصدرين":"Leaderboard";
+
+  // Words
+  words = isArabic?arabicWords:englishWords;
+}
+
+// Start Game
+document.getElementById("start-menu-btn").onclick=()=>{
+  playerName=document.getElementById("player-name").value.trim();
+  if(playerName.length<2){ alert(isArabic?"أدخل اسم لا يقل عن حرفين":"Enter a name with at least 2 characters"); return; }
+  document.getElementById("player-name-display").textContent=playerName; score=0; showScreen("menu");
+};
+
+document.getElementById("use-custom").onclick=()=>{
+  let t=document.getElementById("custom-words").value.trim(); 
+  if(!t){ alert(isArabic?"يجب إدخال كلمات":"Enter words first"); return; }
+  words=t.split(",").map(w=>w.trim().toLowerCase()).filter(w=>w.length>0); startGame(); 
+};
+document.getElementById("use-random").onclick=()=>startGame();
+document.getElementById("show-leaderboard-btn").onclick=()=>{ updateLeaderboardDisplay(); showScreen("leaderboard-box"); };
+document.getElementById("back-to-menu-btn").onclick=()=>showScreen("menu");
+document.getElementById("main-menu-btn").onclick=()=>{ clearInterval(timerInterval); saveScore(); showScreen("menu"); };
+document.getElementById("settings-btn").onclick=()=>{ settingsBox.style.display=settingsBox.style.display==='block'?'none':'block'; };
+
+function startGame(){ showScreen("game-area"); settingsBox.style.display='none'; initGame(); }
+function chooseWord(){ return words[Math.floor(Math.random()*words.length)]; }
+function hideLetters(word){ 
+  let arr=word.split(''), idx=[...arr.keys()]; 
+  shuffle(idx); 
+  idx.slice(Math.ceil(word.length/2)).forEach(i=>arr[i]='_'); 
+  return arr; // لا نضيف أي حرف إلى guessedLetters بعد الآن
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+function initGame(){ attemptsLeft=6; guessedLetters.clear(); chosenWord=chooseWord().toLowerCase(); displayedWord=hideLetters(chosenWord); document.getElementById("guess-btn").disabled=false; updateDisplay(); showMessage(isArabic?"ابدأ التخمين! ":"Start guessing! "); startTimer(); }
+function updateDisplay(){ document.getElementById("word").textContent=displayedWord.join(' '); document.getElementById("attempts").textContent=attemptsLeft; document.getElementById("score-display").textContent=score; }
+function showMessage(msg,error=false){ document.getElementById("message").textContent=error?'':msg; document.getElementById("error-message").textContent=error?msg:''; }
+function endGame(win,msg){ clearInterval(timerInterval); document.getElementById("guess-btn").disabled=true; if(win){ let pts=calculateScore(); score+=pts; showMessage(msg+(isArabic?`  (+${pts} نقاط)`:`  (+${pts} points)`)); setTimeout(initGame,3000); } else { showMessage(msg,true); saveScore(); } updateDisplay(); }
+
+document.getElementById("guess-btn").onclick=()=>{
+  if(attemptsLeft<=0) return;
+  let input=document.getElementById("letter-input"), guess=input.value.trim().toLowerCase();
+  const regex = isArabic ? /^[\u0621-\u064A]$/ : /^[a-z]$/;
+  if(guess.length!==1||!regex.test(guess)){ showMessage(isArabic?"أدخل حرف أبجدي واحد فقط":"Enter one letter only",true); input.value=''; return; }
+  if(guessedLetters.has(guess)){ showMessage(isArabic?"استخدمت الحرف سابقاً ⚠️":"Already used ⚠️",true); input.value=''; return; }
+  guessedLetters.add(guess);
+  if(chosenWord.includes(guess)){ for(let i=0;i<chosenWord.length;i++){ if(chosenWord[i]===guess) displayedWord[i]=guess; } updateDisplay(); if(!displayedWord.includes('_')) endGame(true,isArabic?`فزت! الكلمة: ${chosenWord}`:`You Win! Word: ${chosenWord}`); else showMessage(isArabic?"انت بطريق الصحيح!! ":"Correct! "); }
+  else{ attemptsLeft--; updateDisplay(); if(attemptsLeft===0) endGame(false,isArabic?`خسرت! الكلمة: ${chosenWord}`:`Lost! Word: ${chosenWord}`); else showMessage(isArabic?`خطأ! متبقي ${attemptsLeft} `:`${attemptsLeft} tries left `,true); }
+  input.value='';
+};
+
+window.onload=()=>{ setLang('en'); setMode('light'); updateLeaderboardDisplay(); showScreen("player-setup"); };
+</script>
+
+</body>
+</html>
+how-leaderboard-btn">Leaderboard</button>
+</div>
+
+<!-- Game Area -->
+<div id="game-area" class="container-box">
+  <div id="game-stats">
+    <div class="stat-item">👤 <span id="player-name-display"></span></div>
+    <div class="stat-item"><span id="score-label">Score:</span> <span id="score-display">0</span></div>
+    <div class="stat-item"><span id="time-label">Time Left:</span> <span id="timer-display">60</span>s</div>
+  </div>
+  <div id="word">_ _ _ _</div>
+  <label id="letter-label">Choose a letter:</label><br>
+  <input type="text" id="letter-input" maxlength="1" /><br>
+  <button id="guess-btn">🔍 Guess</button>
+  <button id="main-menu-btn">Main Menu</button>
+  <div id="message"></div>
+  <div id="error-message"></div>
+  <div id="tries-text">❤️ <span id="attempts-label">Attempts Left:</span> <span id="attempts">6</span></div>
+</div>
+
+<!-- Leaderboard -->
+<div id="leaderboard-box" class="container-box">
+  <h2 id="leaderboard-title">Leaderboard</h2>
+  <ul id="leaderboard-list"></ul>
+  <button id="clear-leaderboard-btn">🗑️ مسح المتصدرين</button>
+  <button id="back-to-menu-btn">Back</button>
+</div>
+
+<script>
+// Words
+let englishWords = ["cat","dog","sun","hat","car","book","fish","tree","star","ball","milk","door","pen","cup","egg","bird","rain","fire","moon","leaf"];
+let arabicWords = ["قلم","بيت","شمس","قمر","بحر","ورد","تفاح","ماء","طعام","سرير","كرة","حجر","باب","كتاب","ورقة","قطار,","قطة","فائز","قهوة"];
+let words = englishWords;
+
+// Game variables
+let attemptsLeft=6, chosenWord='', displayedWord=[], guessedLetters=new Set(), score=0, playerName='', timeLeft=60, timerInterval;
+let isArabic=false;
+let leaderboard = JSON.parse(localStorage.getItem('deadWordLeaderboard')) || [];
+
+// DOM elements
+const playerSetup=document.getElementById("player-setup"), menu=document.getElementById("menu"), gameArea=document.getElementById("game-area"), settingsBox=document.getElementById("settings-box"), leaderboardBox=document.getElementById("leaderboard-box");
+
+function showScreen(id){ [playerSetup, menu, gameArea, settingsBox, leaderboardBox].forEach(b=>b.style.display=b.id===id?"block":"none"); }
+
+function updateLeaderboardDisplay(){
+  const list=document.getElementById("leaderboard-list"); list.innerHTML="";
+  leaderboard.sort((a,b)=>b.score-a.score).slice(0,10).forEach((e,i)=>{
+    const li=document.createElement("li"), rank=i+1;
+    const emoji = rank===1?'^_^':rank===2?'':rank===3?'':'';
+    li.innerHTML=`<span>${emoji} ${rank}. ${e.name}</span> <span>${e.score} ${isArabic?'نقطة':'Pts'}</span>`;
+    list.appendChild(li);
+  });
+}
+
+// Clear leaderboard button
+document.getElementById("clear-leaderboard-btn").onclick = () => {
+  if(confirm(isArabic ? "هل تريد مسح جميع المتصدرين؟" : "Do you want to clear the leaderboard?")) {
+    leaderboard = [];
+    localStorage.removeItem('deadWordLeaderboard');
+    updateLeaderboardDisplay();
+  }
+};
+
+function saveScore(){ if(score>0 && playerName){ leaderboard.push({name:playerName,score:score}); localStorage.setItem('deadWordLeaderboard',JSON.stringify(leaderboard)); updateLeaderboardDisplay(); }}
+
+function startTimer(){ timeLeft=60; document.getElementById("timer-display").textContent=timeLeft;
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{ timeLeft--; document.getElementById("timer-display").textContent=timeLeft;
+  if(timeLeft<=0){ clearInterval(timerInterval); endGame(false,isArabic?"انتهى الوقت!":"Time's up!"); }},1000);
+}
+
+function calculateScore(){ return chosenWord.length*10 + timeLeft*5 + attemptsLeft*20; }
+function setMode(mode){ document.body.classList.toggle('dark', mode==='dark'); }
+
+function setLang(lang){
+  isArabic=lang==='ar';
+  document.body.style.direction=isArabic?'rtl':'ltr';
+
+  // Player setup
+  document.getElementById("player-setup-title").textContent = isArabic?"👤 أدخل اسمك":"👤 Enter your name";
+  document.getElementById("start-menu-btn").textContent = isArabic?"▶️ بدء":"▶️ Start";
+
+  // Main menu
+  document.getElementById("menu-title").textContent = isArabic?"القائمة الرئيسية":"Main Menu";
+  document.getElementById("custom-words-label").textContent = isArabic?"أدخل كلماتك الخاصة (افصل بينها بفواصل):":"Enter your words (comma separated):";
+  document.getElementById("use-custom").textContent = isArabic?"استخدم كلماتي":"Use My Words";
+  document.getElementById("use-random").textContent = isArabic?"كلمات جاهزة":"Random Words";
+  document.getElementById("show-leaderboard-btn").textContent = isArabic?"المتصدرين":"Leaderboard";
+
+  // Game labels
+  document.getElementById("score-label").textContent = isArabic?"النقاط:":"Score:";
+  document.getElementById("time-label").textContent = isArabic?"المتبقي:":"Time Left:";
+  document.getElementById("letter-label").textContent = isArabic?"اختر حرف:":"Choose a letter:";
+  document.getElementById("attempts-label").textContent = isArabic?"عدد المحاولات:":"Attempts Left:";
+
+  // Leaderboard
+  document.getElementById("leaderboard-title").textContent = isArabic?"قائمة المتصدرين":"Leaderboard";
+
+  // Words
+  words = isArabic?arabicWords:englishWords;
+}
+
+// Start Game
+document.getElementById("start-menu-btn").onclick=()=>{
+  playerName=document.getElementById("player-name").value.trim();
+  if(playerName.length<2){ alert(isArabic?"أدخل اسم لا يقل عن حرفين":"Enter a name with at least 2 characters"); return; }
+  document.getElementById("player-name-display").textContent=playerName; score=0; showScreen("menu");
+};
+
+document.getElementById("use-custom").onclick=()=>{
+  let t=document.getElementById("custom-words").value.trim(); 
+  if(!t){ alert(isArabic?"يجب إدخال كلمات":"Enter words first"); return; }
+  words=t.split(",").map(w=>w.trim().toLowerCase()).filter(w=>w.length>0); startGame(); 
+};
+document.getElementById("use-random").onclick=()=>startGame();
+document.getElementById("show-leaderboard-btn").onclick=()=>{ updateLeaderboardDisplay(); showScreen("leaderboard-box"); };
+document.getElementById("back-to-menu-btn").onclick=()=>showScreen("menu");
+document.getElementById("main-menu-btn").onclick=()=>{ clearInterval(timerInterval); saveScore(); showScreen("menu"); };
+document.getElementById("settings-btn").onclick=()=>{ settingsBox.style.display=settingsBox.style.display==='block'?'none':'block'; };
+
+function startGame(){ showScreen("game-area"); settingsBox.style.display='none'; initGame(); }
+function chooseWord(){ return words[Math.floor(Math.random()*words.length)]; }
+function hideLetters(word){ 
+  let arr=word.split(''), idx=[...arr.keys()]; 
+  shuffle(idx); 
+  idx.slice(Math.ceil(word.length/2)).forEach(i=>arr[i]='_'); 
+  return arr; // لا نضيف أي حرف إلى guessedLetters بعد الآن
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+
+function initGame(){ attemptsLeft=6; guessedLetters.clear(); chosenWord=chooseWord().toLowerCase(); displayedWord=hideLetters(chosenWord); document.getElementById("guess-btn").disabled=false; updateDisplay(); showMessage(isArabic?"ابدأ التخمين! ":"Start guessing! "); startTimer(); }
+function updateDisplay(){ document.getElementById("word").textContent=displayedWord.join(' '); document.getElementById("attempts").textContent=attemptsLeft; document.getElementById("score-display").textContent=score; }
+function showMessage(msg,error=false){ document.getElementById("message").textContent=error?'':msg; document.getElementById("error-message").textContent=error?msg:''; }
+function endGame(win,msg){ clearInterval(timerInterval); document.getElementById("guess-btn").disabled=true; if(win){ let pts=calculateScore(); score+=pts; showMessage(msg+(isArabic?` 🎉 (+${pts} نقاط)`:`  (+${pts} points)`)); setTimeout(initGame,3000); } else { showMessage(msg,true); saveScore(); } updateDisplay(); }
+
+document.getElementById("guess-btn").onclick=()=>{
+  if(attemptsLeft<=0) return;
+  let input=document.getElementById("letter-input"), guess=input.value.trim().toLowerCase();
+  const regex = isArabic ? /^[\u0621-\u064A]$/ : /^[a-z]$/;
+  if(guess.length!==1||!regex.test(guess)){ showMessage(isArabic?"أدخل حرف أبجدي واحد فقط":"Enter one letter only",true); input.value=''; return; }
+  if(guessedLetters.has(guess)){ showMessage(isArabic?"استخدمت الحرف سابقاً ⚠️":"Already used ⚠️",true); input.value=''; return; }
+  guessedLetters.add(guess);
+  if(chosenWord.includes(guess)){ for(let i=0;i<chosenWord.length;i++){ if(chosenWord[i]===guess) displayedWord[i]=guess; } updateDisplay(); if(!displayedWord.includes('_')) endGame(true,isArabic?`فزت! الكلمة: ${chosenWord}`:`You Win! Word: ${chosenWord}`); else showMessage(isArabic?"انت بطريق الصحيح!! ":"Correct! 👍"); }
+  else{ attemptsLeft--; updateDisplay(); if(attemptsLeft===0) endGame(false,isArabic?`خسرت! الكلمة: ${chosenWord}`:`Lost! Word: ${chosenWord}`); else showMessage(isArabic?`خطأ! متبقي ${attemptsLeft} `:`${attemptsLeft} tries left `,true); }
+  input.value='';
+};
+
+window.onload=()=>{ setLang('en'); setMode('light'); updateLeaderboardDisplay(); showScreen("player-setup"); };
+</script>
+
+</body>
+</html>
